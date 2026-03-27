@@ -21,6 +21,31 @@ Outputs: lgbm_scores.csv, roc_pr_plot.png, ef_bar.png
 - roc_pr_plot.png: ROC + PR curves (same format as Phase 36)
 - ef_bar.png: EF@K bar chart
 
+## Logic
+- Load compounds.csv, compute ECFP4 fingerprints, define active = pIC50 >= threshold
+- LOO-CV: for each compound, train LGBMClassifier on remaining 44, get predict_proba on held-out
+- Compute ROC-AUC, PR-AUC (average_precision_score) from LOO probability scores
+- Compute EF@5%, EF@10%, EF@20% from ranked LOO scores
+- Plot ROC + PR curves (2-panel), EF@K bar chart
+- Save lgbm_scores.csv with per-compound probability scores
+
+## Key Concepts
+- LightGBM `LGBMClassifier` (n_estimators=100, learning_rate=0.1, num_leaves=15)
+- ECFP4 Morgan fingerprints (radius=2, nBits=2048, useChirality=True)
+- LOO-CV for small-sample classification evaluation
+- Enrichment Factor at multiple cutoffs (reusing Phase 35 formula)
+
+## Verification Checklist
+- [x] ROC-AUC = 0.44 (below random 0.5, confirming overfitting)
+- [x] PR-AUC = 0.72 (marginally above 0.667 hit rate baseline)
+- [x] EF@10% = 0.75x (below random enrichment of 1.0x)
+- [x] lgbm_scores.csv, roc_pr_plot.png, ef_bar.png saved to output/
+- [x] 30/45 actives at pIC50 >= 7.0
+
+## Risks
+- LightGBM with 2048 features and 44 training samples = extreme overfitting risk (confirmed by results)
+- Gradient boosting is not suited for high-dimensional sparse features with very small n; RF is preferred
+
 ## Actual Results (v1.1)
 
 | Metric | Value | vs Baseline |
